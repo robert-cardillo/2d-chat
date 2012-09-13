@@ -3,7 +3,7 @@ applications:
   .:
     name: snowy73chat
     framework:
-      name: node
+      name: node06
       info:
         mem: 64M
         description: simple socket.io chat app
