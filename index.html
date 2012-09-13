@@ -1,0 +1,106 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+</head>
+<body>
+	<style>
+		body{
+			margin:0px;
+		}
+		.user{
+			background-color:silver;
+			position:absolute;
+			text-align:center;
+			padding:5px;
+			top:0px;
+			left:0px;
+		}
+		.message{
+			background-color:teal;
+			position:absolute;
+			padding:2px;
+		}
+		.input{
+			position:fixed;
+			width:100%;
+			bottom:0px;
+		}
+	</style>
+	
+	<div id="stage" style="background-color:navy;height:800px;"></div>
+	<input id="input" class="input"/>
+	
+	<script src="http://code.jquery.com/jquery-1.8.1.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script> 
+	<script>
+		var userdiv = '<div class="user" id="nick">nick</div>';
+		var messagediv = '<div id="nick-message" class="message"></div>'
+		var self = "usernick";
+		var moveduration = 300;
+		var socket = io.connect();
+		
+		$(function(){
+			do{
+				self = prompt("What's your nickname?");
+			}while(!self);
+			
+			adduser(self, 0, 0);
+			
+			socket.emit('set nick', {nick: self});
+			
+			socket.on('add user', function(data){
+				adduser(data.nick, data.x, data.y);
+			});
+			
+			socket.on('move user', function(data){
+				moveuser(data.nick, data.x, data.y);
+			});
+			
+			socket.on('chat', function(data){
+				chat(data.nick, data.message);
+			});
+			
+			socket.on('remove user', function(data){
+				removeuser(data.nick);
+			});
+			
+			$("#stage").click(function(e){
+				moveuser(self, e.pageX, e.pageY);
+				socket.emit("move", {x: e.pageX, y: e.pageY});
+				$("#input").focus();
+			});
+			
+			$("#input").keydown(function(e){
+				if(e.keyCode==13){
+					chat(self, $(this).val());
+					socket.emit("chat", {message: $(this).val()});
+					$(this).val("");
+				}
+			});
+		});
+		
+		function adduser(nick, x, y){
+			$("#stage").append(userdiv.replace(/nick/g,nick));
+			moveuser(nick, x, y);
+		}
+		
+		function moveuser(nick, x, y){
+			$("#"+nick).animate({left:x, top:y}, moveduration);
+			$("#"+nick+"-message").animate({left:x, top:y-20}, moveduration);
+		}
+		
+		function chat(nick, message){
+			$("#"+nick+"-message").remove();
+			$("#stage").append(messagediv.replace(/nick/g,nick));
+			$("#"+nick+"-message").css({left:$("#"+nick).css("left"), top:parseInt($("#"+nick).css("top"))-20});
+			$("#"+nick+"-message").html(message);
+		}
+		
+		function removeuser(nick){
+			$("#"+nick).remove();
+			$("#"+nick+"-message").remove();
+		}
+	</script>
+</body>
+</html>

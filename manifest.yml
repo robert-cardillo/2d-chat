@@ -1,0 +1,13 @@
+---
+applications:
+  .:
+    name: snowy73chat
+    framework:
+      name: node
+      info:
+        mem: 64M
+        description: simple socket.io chat app
+        exec: 
+    url: ${name}.${target-base}
+    mem: 64M
+    instances: 1
