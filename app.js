@@ -29,28 +29,45 @@ if(process.env.VMC_APP_PORT) {
 
 io.sockets.on('connection', function (socket) {
   socket.on('set nick', function (data) {
-		socket.userdata = {nick: data.nick, x: 0, y: 0};
-    socket.broadcast.emit('add user', socket.userdata);
-		io.sockets.clients().forEach(function(client, index){
-			if(socket!==client){
-				socket.emit('add user', client.userdata);
-			}
+		socket.set('userdata', {nick: data.nick, x: 0, y: 0},function(){
+			socket.broadcast.emit('add user', {nick: data.nick, x: 0, y: 0});
+			io.sockets.clients().forEach(function(client, index){
+				if(socket!==client){
+					client.get('userdata', function(err, userdata){
+						if(!err && userdata){
+							socket.emit('add user', userdata);
+						}
+					});
+				}
+			});
 		});
   });
 	
 	socket.on('move', function (data) {
-		socket.userdata.x = data.x;
-		socket.userdata.y = data.y;
-    socket.broadcast.emit('move user', socket.userdata);
+		socket.get('userdata', function(err, userdata){
+			if(!err && userdata){
+				userdata.x = data.x;
+				userdata.y = data.y;
+				socket.set('userdata', userdata,function(){
+					socket.broadcast.emit('move user', userdata);
+				});
+			}
+		});
   });
 	
 	socket.on('chat', function (data) {
-		socket.broadcast.emit('chat', {nick: socket.userdata.nick, message: data.message});
+		socket.get('userdata', function(err, userdata){
+			if(!err && userdata){
+				socket.broadcast.emit('chat', {nick: userdata.nick, message: data.message});
+			}
+		});
   });
 	
 	socket.on('disconnect', function () {
-		if(socket.userdata && socket.userdata.nick){
-			io.sockets.emit('remove user', {nick: socket.userdata.nick});
-		}
+		socket.get('userdata', function(err, userdata){
+			if(!err && userdata && userdata.nick){
+				io.sockets.emit('remove user', {nick: userdata.nick});
+			}
+		});
 	});
 });
